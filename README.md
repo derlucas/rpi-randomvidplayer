@@ -24,6 +24,10 @@ and the video hasn't finished loading yet.
 
 You can use the two part tutorial on the [blog](https://alexlubbock.com) of Alex:
 
+Start with the --video-dir Option to set the base path for Videos. Create a new folder
+within the Videos folder for each GPIO pin, eg "17", "22" and so on. Put your
+video files into that folder.
+
 On the hardware side, you'll need a Raspberry PI with several switches,
 one for each video. Each switch should be connected to a GPIO pin, and
 to ground. 

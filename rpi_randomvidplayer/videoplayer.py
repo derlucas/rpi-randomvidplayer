@@ -13,6 +13,8 @@ from threading import Lock
 import signal
 import argparse
 import random
+import logging
+import warnings
 
 
 class VideoPlayer(object):
@@ -32,13 +34,16 @@ class VideoPlayer(object):
 
     def __init__(self, audio='hdmi', video_dir=os.getcwd(), gpio_pins=None,
                  splash=None, debug=False):
-        # Use default GPIO pins, if needed
-        if gpio_pins is None:
-            gpio_pins = self._GPIO_PIN_DEFAULT.copy()
         self.gpio_pins = gpio_pins
-
-        print(self.gpio_pins)
         self.videos = {}
+        self.debug = debug
+        self.splash = splash
+        self._splashproc = None
+
+        logging.debug("GPIO Pins {}".format(self.gpio_pins))
+
+        if self.splash is not None and not os.path.exists(self.splash):
+            raise FileNotFoundError('Splash image "{}" not found'.format(self.splash))
 
         if not os.path.exists(video_dir):
             raise FileNotFoundError('Video directory "{}" not found'.format(video_dir))
@@ -51,37 +56,17 @@ class VideoPlayer(object):
             videos_in_folder = [os.path.join(pin_video_dir, f)
                                 for f in sorted(os.listdir(pin_video_dir))
                                 if os.path.splitext(f)[1] in self._VIDEO_EXTS]
-            print("videos in folder {} = {}".format(pin, videos_in_folder))
+            logging.debug("videos in folder {} = {}".format(pin, videos_in_folder))
 
             if not videos_in_folder:
                 raise Exception('No videos found in "{}"'.format(pin_video_dir))
 
             self.videos[pin] = videos_in_folder
 
-        # if videos:
-        #     self.videos = videos
-        #     for video in videos:
-        #         if not os.path.exists(video):
-        #             raise FileNotFoundError('Video "{}" not found'.format(video))
-        # else:
-        #     self.videos = [os.path.join(video_dir, f)
-        #                    for f in sorted(os.listdir(video_dir))
-        #                    if os.path.splitext(f)[1] in self._VIDEO_EXTS]
-        #     if not self.videos:
-        #         raise Exception('No videos found in "{}". Please specify a different '
-        #                         'directory or filename(s).'.format(video_dir))
-        #
-        # # Check that we have enough GPIO input pins for every video
-        # assert len(videos) <= len(self.gpio_pins), \
-        #     "Not enough GPIO pins configured for number of videos"
-
-        self.debug = debug
 
         assert audio in ('hdmi', 'local', 'both'), "Invalid audio choice"
         self.audio = audio
 
-        self.splash = splash
-        self._splashproc = None
 
     def _kill_process(self):
         """ Kill a video player process. SIGINT seems to work best. """
@@ -104,10 +89,7 @@ class VideoPlayer(object):
             # Start a new video player process, capture STDOUT to keep the
             # screen clear. Set a session ID (os.setsid) to allow us to kill
             # the whole video player process tree.
-            cmd = ['omxplayer', '-b', '-o', self.audio]
-            cmd += ['--no-osd']
-            cmd += ['--no-keys']
-
+            cmd = ['omxplayer', '-b', '-o', self.audio, '--no-osd', '--no-keys']
 
             self._p = Popen(cmd + [filename],
                             stdout=None if self.debug else PIPE,
@@ -160,7 +142,10 @@ class VideoPlayer(object):
             os.system('tput cnorm')
 
         # Cleanup the GPIO pins (reset them)
-        GPIO.cleanup()
+        try:
+            GPIO.cleanup()
+        except RuntimeWarning:
+            pass
 
         # Kill any active video process
         self._kill_process()
@@ -175,11 +160,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="""Raspberry Pi video player controlled by GPIO pins
 
-This program is designed to power a looping video display, where the active
+This program is designed to power a video display, where the active
 video can be changed by pressing a button (i.e. by shorting a GPIO pin).
-The active video can optionally be indicated by an LED (one output for each
-input pin; works well with switches with built-in LEDs, but separate LEDs work
-too).
 
 This video player uses omxplayer, a hardware-accelerated video player for the
 Raspberry Pi, which must be installed separately.
@@ -189,10 +171,9 @@ Raspberry Pi, which must be installed separately.
                         choices=('hdmi', 'local', 'both'),
                         help='Output audio over HDMI, local (headphone jack),'
                              'or both')
-
     parser.add_argument('--video-dir', default=os.getcwd(),
                         help='Directory containing video files.')
-    parser.add_argument('--gpio-pins', default=VideoPlayer._GPIO_PIN_DEFAULT,
+    parser.add_argument('--gpio-pins', required=True,
                         action="store", nargs='+', type=int,
                         help='List of GPIO pins, separated by space.')
     parser.add_argument('--debug', action='store_true', default=False,
@@ -205,8 +186,18 @@ Raspberry Pi, which must be installed separately.
     # Invoke the videoplayer
     args = parser.parse_args()
 
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+
     VideoPlayer(**vars(args)).start()
 
 
 if __name__ == '__main__':
-    main()
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        logging.error(str(e))
