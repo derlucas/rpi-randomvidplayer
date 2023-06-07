@@ -1,2 +1,2 @@
 include versioneer.py
-include rpi_vidlooper/_version.py
+include rpi_randomvidplayer/_version.py

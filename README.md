@@ -1,39 +1,32 @@
-# rpi-vidlooper
+# rpi-randomvidplayer
 
-A video looper for the Raspberry Pi, controlled by GPIO pins. Designed to
+A video player for the Raspberry Pi, controlled by GPIO pins. Designed to
 run an unattended video display, where users can select the active video
 by switch.
 
 MIT licensed.
 
+Based on [rpi-vidlooper by alubbock](https://github.com/alubbock/rpi-vidlooper)
+
 ## Features
 
 * Play videos using [OMXplayer](https://elinux.org/Omxplayer), a hardware-
 assisted video player for smooth playback.
-* Switch between 2 or more videos using hardware switches wired to the
+* Switch between any number of videos using hardware switches wired to the
 Raspberry Pi's GPIO pins.
-* Optionally, indicate the active video by LED. This can be used with
-arcade-style switches which have built-in LEDs, or separate ones.
 * Callback-based, rather than polling-based. This means that button
 presses should always be acted upon.
 * Thread locking, to avoid issues when buttons are pressed rapidly
 and the video hasn't finished loading yet.
+* The Software plays a random video from a folder based on the GPIO triggered 
 
 ## Usage
 
-I've published a two part tutorial on my [blog](https://alexlubbock.com):
-
-* In [part 1](https://alexlubbock.com/raspberry-pi-video-player-hardware),
-I cover the hardware parts list and build instructions, including a
-3D-printed case
-* In [part 2](https://alexlubbock.com/raspberry-pi-video-player-software),
-I describe this `rpi-vidlooper` software tool and how to get it set up
-and configured
+You can use the two part tutorial on the [blog](https://alexlubbock.com) of Alex:
 
 On the hardware side, you'll need a Raspberry PI with several switches,
 one for each video. Each switch should be connected to a GPIO pin, and
-to ground. Optionally, you can set up an indicator LED for each video,
-connected to a GPIO pin.
+to ground. 
 
 Install dependencies:
 
@@ -42,27 +35,24 @@ sudo apt-get update
 sudo apt-get install python3-pip omxplayer fbi
 ```
 
-Install rpi-vidlooper:
+Install rpi-randomvidplayer:
 
 ```
-pip3 install rpi-vidlooper
+git clone https://github.com/derlucas/rpi-randomvidplayer
 ```
 
-This creates the `vidlooper` command. For usage help, see:
+For usage help, see:
 
 ```
-vidlooper --help
+cd rpi-randomvidplayer/
+python3 vidlooper.py --help
 ```
 
 ## Troubleshooting
 
 ### RuntimeError: No access to /dev/mem. Try running as root!
 
-By default, you'll need to run `sudo vidlooper`, to gain access to the GPIO
-pins and the graphics card (GPU) for `omxplayer`. Generally, this is not
-recommended.
-
-To avoid this, the user you want to run the vidlooper as will need to be
+The user you want to run the videoplayer as will need to be
 in the `gpio` group. For example, for the `pi` user, you'd need to do this:
 
 ```

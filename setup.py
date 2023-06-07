@@ -8,19 +8,19 @@ def main():
         long_description = f.read()
 
     setup(
-        name='rpi_vidlooper',
+        name='rpi_randomvidplayer',
         version=versioneer.get_version(),
-        description='Raspberry Pi GPIO-controlled video looper',
+        description='Raspberry Pi GPIO-controlled video player',
         long_description=long_description,
         long_description_content_type='text/markdown',
-        author='Alex Lubbock',
-        author_email='code@alexlubbock.com',
+        author='Lucas Pleß',
+        author_email='hello@lucas-pless.com',
         packages=find_packages(),
         install_requires=['RPi.GPIO'],
         cmdclass=versioneer.get_cmdclass(),
         zip_safe=True,
         entry_points = {
-            'console_scripts': ['vidlooper=rpi_vidlooper.vidlooper:main']
+            'console_scripts': ['randomvidplayer=rpi_randomvidplayer.videoplayer:main']
         }
     )
 
